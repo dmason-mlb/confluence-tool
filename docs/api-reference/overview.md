@@ -38,20 +38,10 @@ Authorization: Basic {base64_encoded_email:api_token}
 ### Advanced Content
 - **[Whiteboards](content/whiteboards.md)** - Visual collaboration boards
 - **[Databases](content/databases.md)** - Structured data management
-- **[Smart Links](content/smart-links.md)** - Embedded external content
-- **[Custom Content](content/custom-content.md)** - Custom content types
 
 ### Space Management
 - **[Spaces](space/spaces.md)** - Create and manage spaces
 - **[Space Permissions](space/permissions.md)** - Control access
-- **[Space Properties](space/properties.md)** - Custom space metadata
-- **[Space Roles](space/roles.md)** - Permission templates
-
-### User & Admin
-- **[Users](user/users.md)** - User management
-- **[Admin Key](admin/admin-key.md)** - Administrative access
-- **[Data Policies](admin/data-policies.md)** - Data governance
-- **[Classification Levels](admin/classification.md)** - Content classification
 
 ## Common Patterns
 
@@ -128,4 +118,7 @@ Confluence Cloud enforces rate limits:
 
 ## Quick Start
 
-See our [Quick Start Guide](../guides/quick-start.md) for example code and common use cases.
+For practical examples and code samples, see:
+- **[Example Scripts](../../scripts/examples/)** - Complete working examples
+- **[Generic Scripts](../../generic-scripts/)** - Standalone scripts for external use
+- **[Python Client](../../scripts/confluence_client.py)** - Full-featured client library

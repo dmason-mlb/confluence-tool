@@ -90,18 +90,36 @@ confluence-tool/
 │   ├── confluence_client.py    # Main Python client library
 │   ├── test_connection.py      # Test your API connection
 │   ├── test_formatting.py      # Create a test page with formatting
+│   ├── check_page_properties.py # Check content properties
+│   ├── config.py              # Configuration loader
 │   ├── examples/               # Example scripts
 │   │   ├── page_operations.py  # Page CRUD examples
 │   │   └── content_migration.py # Migration utilities
 │   └── utilities/              # Advanced utilities
 │       ├── bulk_operations.py  # Bulk content operations
 │       └── space_admin.py      # Space administration
+├── generic-scripts/            # Standalone scripts for external use
+│   ├── create_confluence_page.py # Create pages from any repository
+│   ├── update_confluence_page.py # Update existing pages
+│   ├── markdown_to_storage.py    # Convert Markdown to storage format
+│   └── README.md               # Generic scripts documentation
 ├── .env.example                # Environment variable template
 ├── setup_env.sh               # Interactive setup script
 ├── TESTING.md                 # Testing guide
+├── CLAUDE.md                  # Implementation notes
 └── confcloud.2.postman.json   # Postman collection
 
 ```
+
+## Generic Scripts for External Use
+
+The `generic-scripts/` directory contains standalone scripts that can be used from any repository:
+
+- **[create_confluence_page.py](generic-scripts/create_confluence_page.py)** - Create new Confluence pages from files, stdin, or command line
+- **[update_confluence_page.py](generic-scripts/update_confluence_page.py)** - Update existing pages with new content or append/prepend
+- **[markdown_to_storage.py](generic-scripts/markdown_to_storage.py)** - Convert Markdown to Confluence storage format
+
+See [generic-scripts/README.md](generic-scripts/README.md) for detailed usage instructions and integration examples.
 
 ## Script Documentation
 
