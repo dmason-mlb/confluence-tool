@@ -14,13 +14,22 @@ This repository provides:
 
 ### 1. Set Up Authentication
 
+Run the interactive setup script:
 ```bash
-export CONFLUENCE_DOMAIN="your-domain.atlassian.net"
-export CONFLUENCE_EMAIL="your-email@example.com"
-export CONFLUENCE_API_TOKEN="your-api-token"
+./setup_env.sh
+```
+
+This will create a `.env` file with your credentials. Alternatively, you can:
+
+```bash
+# Copy and edit the example file
+cp .env.example .env
+# Edit .env with your values
 ```
 
 Get your API token from: https://id.atlassian.com/manage-profile/security/api-tokens
+
+For detailed setup and testing instructions, see [TESTING.md](TESTING.md)
 
 ### 2. Install Dependencies
 
@@ -40,7 +49,14 @@ client = ConfluenceClient(
     api_token="your-api-token"
 )
 
-# Create a page
+# Create a page (with modern editor support)
+page = client.create_page_modern_editor(
+    space_id=123456,
+    title="My New Page",
+    content="<h1>Hello World</h1><p>Created via API!</p>"
+)
+
+# Or use legacy editor method
 page = client.create_page(
     space_id=123456,
     title="My New Page",
@@ -72,13 +88,18 @@ confluence-tool/
 │   └── guides/                 # How-to guides
 ├── scripts/
 │   ├── confluence_client.py    # Main Python client library
+│   ├── test_connection.py      # Test your API connection
+│   ├── test_formatting.py      # Create a test page with formatting
 │   ├── examples/               # Example scripts
 │   │   ├── page_operations.py  # Page CRUD examples
 │   │   └── content_migration.py # Migration utilities
 │   └── utilities/              # Advanced utilities
 │       ├── bulk_operations.py  # Bulk content operations
 │       └── space_admin.py      # Space administration
-└── confcloud.2.postman.json    # Postman collection
+├── .env.example                # Environment variable template
+├── setup_env.sh               # Interactive setup script
+├── TESTING.md                 # Testing guide
+└── confcloud.2.postman.json   # Postman collection
 
 ```
 
@@ -91,6 +112,7 @@ The main Python client provides a comprehensive interface to the Confluence API:
 ```python
 # Page operations
 create_page(space_id, title, content, parent_id=None)
+create_page_modern_editor(space_id, title, content, parent_id=None)  # Enables modern editor
 get_page(page_id, expand=['body.storage'])
 update_page(page_id, title, content, version)
 delete_page(page_id)
@@ -213,6 +235,8 @@ The `docs/api-reference/` directory contains comprehensive documentation for all
 - **[Permissions API](docs/api-reference/space/permissions.md)** - Access control
 - **[Whiteboards API](docs/api-reference/content/whiteboards.md)** - Visual collaboration
 - **[Databases API](docs/api-reference/content/databases.md)** - Structured data
+- **[v2 API Changes](docs/api-reference/v2-changes.md)** - Important changes from v1
+- **[v2 API Limitations](docs/api-reference/v2-limitations.md)** - Critical limitations to be aware of
 
 Each documentation file includes:
 - Complete endpoint listings

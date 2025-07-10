@@ -226,12 +226,24 @@ def copy_page_to_space(client: ConfluenceClient, source_page_id: str, target_spa
 
 def main():
     """Run page operation examples."""
-    # Configuration
-    DOMAIN = os.getenv('CONFLUENCE_DOMAIN', 'your-domain.atlassian.net')
-    EMAIL = os.getenv('CONFLUENCE_EMAIL', 'your-email@example.com')
-    API_TOKEN = os.getenv('CONFLUENCE_API_TOKEN', 'your-api-token')
-    SPACE_ID = int(os.getenv('CONFLUENCE_SPACE_ID', '123456'))
-    SPACE_KEY = os.getenv('CONFLUENCE_SPACE_KEY', 'TEST')
+    # Load configuration
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from config import get_config
+    
+    config = get_config()
+    if not config:
+        sys.exit(1)
+    
+    DOMAIN = config['domain']
+    EMAIL = config['email']
+    API_TOKEN = config['api_token']
+    SPACE_ID = config['space_id']
+    SPACE_KEY = config['space_key'] or 'TEST'
+    
+    if not SPACE_ID:
+        print("Error: CONFLUENCE_SPACE_ID is required.")
+        print("Run './setup_env.sh' to configure.")
+        sys.exit(1)
     
     # Initialize client
     client = ConfluenceClient(DOMAIN, EMAIL, API_TOKEN)

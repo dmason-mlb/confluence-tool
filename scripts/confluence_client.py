@@ -33,6 +33,7 @@ class ConfluenceClient:
             api_token: Your API token
         """
         self.domain = domain.rstrip('/')
+        self.email = email
         self.base_url = f"https://{domain}/wiki/api/v2"
         self.auth = self._create_auth(email, api_token)
         self.session = requests.Session()
@@ -141,7 +142,7 @@ class ConfluenceClient:
             Created page data
         """
         data = {
-            'spaceId': space_id,
+            'spaceId': str(space_id),
             'status': kwargs.get('status', 'current'),
             'title': title,
             'body': {
@@ -154,6 +155,7 @@ class ConfluenceClient:
             data['parentId'] = parent_id
         
         data.update(kwargs)
+        logger.info(f"Creating page with data: {json.dumps(data, indent=2)[:500]}...")
         response = self._request('POST', 'pages', json=data)
         return response.json()
     
@@ -244,7 +246,7 @@ class ConfluenceClient:
             Created blog post data
         """
         data = {
-            'spaceId': space_id,
+            'spaceId': str(space_id),
             'status': kwargs.get('status', 'current'),
             'title': title,
             'body': {
@@ -406,8 +408,31 @@ class ConfluenceClient:
     # User Operations
     
     def get_current_user(self) -> Dict:
-        """Get current authenticated user."""
-        response = self._request('GET', 'users/current')
+        """
+        Get current authenticated user.
+        Note: v2 API doesn't have a dedicated current user endpoint.
+        This method returns basic auth info for compatibility.
+        """
+        # V2 API doesn't have users/current endpoint
+        # Return basic info from auth credentials
+        return {
+            'email': self.email,
+            'displayName': self.email.split('@')[0],
+            'accountId': 'authenticated-user'
+        }
+    
+    def get_users_bulk(self, account_ids: List[str]) -> Dict:
+        """
+        Get user details for multiple account IDs.
+        
+        Args:
+            account_ids: List of account IDs
+            
+        Returns:
+            User details
+        """
+        data = {'accountIds': account_ids}
+        response = self._request('POST', 'users-bulk', json=data)
         return response.json()
     
     # Label Operations
@@ -431,6 +456,138 @@ class ConfluenceClient:
         """Get labels for a page."""
         response = self._request('GET', f'pages/{page_id}/labels')
         return response.json().get('results', [])
+    
+    # Content Property Operations
+    
+    def get_content_properties(self, page_id: Union[int, str]) -> List[Dict]:
+        """
+        Get all content properties for a page.
+        
+        Args:
+            page_id: Page ID
+            
+        Returns:
+            List of properties
+        """
+        response = self._request('GET', f'pages/{page_id}/properties')
+        return response.json().get('results', [])
+    
+    def get_content_property(self, page_id: Union[int, str], key: str) -> Dict:
+        """
+        Get a specific content property by key.
+        
+        Args:
+            page_id: Page ID
+            key: Property key
+            
+        Returns:
+            Property data
+        """
+        # First get all properties to find the one with matching key
+        properties = self.get_content_properties(page_id)
+        for prop in properties:
+            if prop.get('key') == key:
+                # Get the full property details
+                response = self._request('GET', f'pages/{page_id}/properties/{prop["id"]}')
+                return response.json()
+        raise ValueError(f"Property with key '{key}' not found")
+    
+    def set_content_property(self, page_id: Union[int, str], key: str, value: Any) -> Dict:
+        """
+        Set or update a content property on a page.
+        
+        Args:
+            page_id: Page ID
+            key: Property key
+            value: Property value
+            
+        Returns:
+            Property data
+        """
+        data = {
+            'key': key,
+            'value': value
+        }
+        
+        # First try to create the property
+        try:
+            response = self._request('POST', f'pages/{page_id}/properties', json=data)
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 409:  # Property already exists
+                # Try to update instead
+                logger.info(f"Property {key} already exists, attempting to update...")
+                response = self._request('PUT', f'pages/{page_id}/properties/{key}', json={'value': value})
+                return response.json()
+            else:
+                raise
+    
+    def create_page_modern_editor(self, space_id: int, title: str, content: str, 
+                                parent_id: Optional[int] = None, **kwargs) -> Dict:
+        """
+        Create a page using the modern editor by setting the editor property.
+        
+        This is a 3-step process:
+        1. Create a blank page with title only
+        2. Set the editor property to 'v2' 
+        3. Update the page with content
+        
+        Args:
+            space_id: Space ID
+            title: Page title
+            content: Page content (HTML or storage format)
+            parent_id: Optional parent page ID
+            **kwargs: Additional page properties
+            
+        Returns:
+            Created page data
+        """
+        # Step 1: Create blank page with title only
+        logger.info("Step 1: Creating blank page...")
+        blank_page = self.create_page(
+            space_id=space_id,
+            title=title,
+            content="<p> </p>",  # Minimal content
+            parent_id=parent_id,
+            **kwargs
+        )
+        page_id = blank_page['id']
+        
+        # Step 2: Check and set editor property to v2
+        logger.info(f"Step 2: Checking editor property for page {page_id}...")
+        try:
+            # First check if the property already exists and has the correct value
+            try:
+                editor_prop = self.get_content_property(page_id, 'editor')
+                if editor_prop.get('value') == 'v2':
+                    logger.info("Editor property is already set to v2 - skipping update")
+                else:
+                    logger.info(f"Editor property exists but has value '{editor_prop.get('value')}' - attempting to update")
+                    self.set_content_property(page_id, 'editor', 'v2')
+            except ValueError:
+                # Property doesn't exist, create it
+                logger.info("Editor property doesn't exist - creating it")
+                self.set_content_property(page_id, 'editor', 'v2')
+                logger.info("Successfully set editor property to v2")
+        except Exception as e:
+            logger.warning(f"Could not set editor property: {e}")
+            # Continue anyway as it might already be configured correctly
+        
+        # Step 3: Update page with actual content
+        logger.info("Step 3: Updating page with content...")
+        # Get current version
+        page_data = self.get_page(page_id)
+        current_version = page_data['version']['number']
+        
+        # Update with content
+        updated_page = self.update_page(
+            page_id=page_id,
+            title=title,
+            content=content,
+            version=current_version
+        )
+        
+        return updated_page
     
     # Bulk Operations
     
